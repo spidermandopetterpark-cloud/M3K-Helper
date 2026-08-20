@@ -20,10 +20,21 @@
         tools:replace="android:supportsRtl"
         tools:targetApi="tiramisu">
 
+        <!-- Shizuku -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+        <!-- Main Activity -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.M3KHelper">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -34,26 +45,32 @@
                 android:value="" />
         </activity>
 
+        <!-- Quick Boot -->
         <service
             android:name=".qstiles.QuickBootTile"
             android:exported="true"
             android:icon="@drawable/ic_windows"
             android:label="Windows"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+
+        <!-- Mount Windows -->
         <service
             android:name=".qstiles.MountTile"
             android:exported="true"
             android:icon="@drawable/ic_folder"
             android:label="Mount Windows"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+
     </application>
 
 </manifest>
