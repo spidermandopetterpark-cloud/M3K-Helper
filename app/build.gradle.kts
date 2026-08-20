@@ -14,7 +14,7 @@ android {
     defaultConfig {
         applicationId = "com.remtrik.m3khelper"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 68
         versionName = "6.3.0-TFDID"
 
