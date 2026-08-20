@@ -18,14 +18,18 @@ android {
         versionCode = 68
         versionName = "6.3.0-TFDID"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner =
+            "androidx.test.runner.AndroidJUnitRunner"
     }
 
     splits {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "x86_64")
+            include(
+                "arm64-v8a",
+                "x86_64"
+            )
         }
     }
 
@@ -33,13 +37,18 @@ android {
         release {
             isShrinkResources = true
             isMinifyEnabled = true
+
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
+                getDefaultProguardFile(
+                    "proguard-android-optimize.txt"
+                ),
                 "proguard-rules.pro"
             )
+
             vcsInfo.include = false
         }
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -48,8 +57,11 @@ android {
     //noinspection WrongGradleMethod
     kotlin {
         jvmToolchain(21)
+
         compilerOptions {
-            optIn.add("-XXLanguage:+PropertyParamAnnotationDefaultTargetMode")
+            optIn.add(
+                "-XXLanguage:+PropertyParamAnnotationDefaultTargetMode"
+            )
         }
     }
 
@@ -67,6 +79,7 @@ android {
             "IconDensities",
             "ContentDescription"
         )
+
         abortOnError = false
         checkReleaseBuilds = false
     }
@@ -75,13 +88,10 @@ android {
         jniLibs {
             useLegacyPackaging = false
         }
+
         resources {
-            // https://stackoverflow.com/a/58956288
-            // It will break Layout Inspector, but it's unused for release build.
             excludes += "META-INF/*.version"
-            // https://github.com/Kotlin/kotlinx.coroutines?tab=readme-ov-file#avoiding-including-the-debug-infrastructure-in-the-resulting-apk
             excludes += "DebugProbesKt.bin"
-            // https://issueantenna.com/repo/kotlin/kotlinx.coroutines/issues/3158
             excludes += "kotlin-tooling-metadata.json"
         }
     }
@@ -89,10 +99,22 @@ android {
     //noinspection WrongGradleMethod
     androidComponents {
         onVariants { variant ->
+
             variant.outputs.forEach { output ->
+
                 val abi =
-                    output.filters.find { it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI }?.identifier
-                output.outputFileName.set("M3K_Helper_v${defaultConfig.versionName}_${defaultConfig.versionCode}-${variant.name}-${abi ?: "all"}.apk")
+                    output.filters.find {
+                        it.filterType ==
+                            com.android.build.api.variant
+                                .FilterConfiguration.FilterType.ABI
+                    }?.identifier
+
+                output.outputFileName =
+                    "M3K_Helper_v" +
+                    "${defaultConfig.versionName}_" +
+                    "${defaultConfig.versionCode}-" +
+                    "${variant.name}-" +
+                    "${abi ?: "all"}.apk"
             }
         }
     }
@@ -108,33 +130,95 @@ android {
 }
 
 ksp {
-    arg("compose-destinations.defaultTransitions", "none")
+    arg(
+        "compose-destinations.defaultTransitions",
+        "none"
+    )
 }
 
 dependencies {
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.ui)
-    debugImplementation(libs.androidx.compose.ui.tooling)
 
-    implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // AndroidX / Compose
+    implementation(
+        libs.androidx.activity.compose
+    )
 
-    implementation(libs.compose.destinations.core)
-    ksp(libs.compose.destinations.ksp)
+    implementation(
+        libs.androidx.compose.material.icons.extended
+    )
 
-    implementation(libs.com.github.topjohnwu.libsu.core)
-    implementation(libs.com.github.topjohnwu.libsu.service)
-    implementation(libs.com.github.topjohnwu.libsu.nio)
+    implementation(
+        libs.androidx.compose.material3
+    )
 
-    implementation(libs.kotlinx.coroutines.core)
+    implementation(
+        libs.androidx.compose.ui
+    )
 
-    implementation(libs.material)
+    debugImplementation(
+        libs.androidx.compose.ui.tooling
+    )
 
-    implementation(libs.materialKolor)
+    // Lifecycle
+    implementation(
+        libs.androidx.lifecycle.runtime.compose
+    )
 
-    implementation(platform(libs.okhttp.bom))
-    implementation(libs.okhttp)
+    implementation(
+        libs.androidx.lifecycle.runtime.ktx
+    )
+
+    implementation(
+        libs.androidx.lifecycle.viewmodel.compose
+    )
+
+    // Compose Destinations
+    implementation(
+        libs.compose.destinations.core
+    )
+
+    ksp(
+        libs.compose.destinations.ksp
+    )
+
+    // LibSU
+    implementation(
+        libs.com.github.topjohnwu.libsu.core
+    )
+
+    implementation(
+        libs.com.github.topjohnwu.libsu.service
+    )
+
+    implementation(
+        libs.com.github.topjohnwu.libsu.nio
+    )
+
+    // Shizuku
+    implementation(
+        libs.shizuku.api
+    )
+
+    // Coroutines
+    implementation(
+        libs.kotlinx.coroutines.core
+    )
+
+    // Material
+    implementation(
+        libs.material
+    )
+
+    implementation(
+        libs.materialKolor
+    )
+
+    // OkHttp
+    implementation(
+        platform(libs.okhttp.bom)
+    )
+
+    implementation(
+        libs.okhttp
+    )
 }
