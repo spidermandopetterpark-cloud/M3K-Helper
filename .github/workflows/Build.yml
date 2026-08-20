@@ -29,27 +29,47 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Update SDK tools
-        run: |
-          sdkmanager --update || true
-
-      - name: Install Android SDK 37
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-37"
-          sdkmanager "platform-tools"
-
-      - name: Check Android SDK
+      - name: Show SDK information
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          sdkmanager --list_installed
-          ls -la "$ANDROID_HOME/platforms"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo ""
+          echo "Installed platforms:"
+          ls -la "$ANDROID_HOME/platforms" || true
+          echo ""
+          echo "Available Android platforms:"
+          sdkmanager --list | grep -E "platforms;android-[0-9]+" | head -80
+
+      - name: Accept licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
+      - name: Install platform tools
+        run: |
+          sdkmanager "platform-tools"
+
+      - name: Verify API 37
+        run: |
+          if [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
+            echo "=============================================="
+            echo "ERRO: Android SDK Platform 37 não está disponível"
+            echo "=============================================="
+            echo ""
+            echo "Plataformas instaladas:"
+            ls -la "$ANDROID_HOME/platforms" || true
+            echo ""
+            echo "Pacotes encontrados:"
+            sdkmanager --list | grep -E "android-37|android-36|android-35" || true
+            exit 1
+          fi
+
+          echo "Android SDK 37 encontrado!"
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
 
-      - name: Clean
-        run: ./gradlew clean --stacktrace
+      - name: Check Gradle
+        run: ./gradlew --version
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
