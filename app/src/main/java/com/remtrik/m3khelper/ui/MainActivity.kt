@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -40,14 +39,9 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Storage
 
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -59,7 +53,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -87,6 +80,7 @@ import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
 import com.remtrik.m3khelper.BuildConfig
 import com.remtrik.m3khelper.prefs
 
+import com.remtrik.m3khelper.ui.component.NoRoot
 import com.remtrik.m3khelper.ui.component.UnknownDevice
 import com.remtrik.m3khelper.ui.component.UpdateDialog
 import com.remtrik.m3khelper.ui.theme.M3KHelperTheme
@@ -112,13 +106,14 @@ import com.topjohnwu.superuser.Shell
 
 import rikka.shizuku.Shizuku
 
+
 class MainActivity : ComponentActivity() {
 
     companion object {
         private const val SHIZUKU_REQUEST_CODE = 1001
     }
 
-    private val shizukuListener =
+    private val shizukuPermissionListener =
         Shizuku.OnRequestPermissionResultListener { requestCode, _ ->
             if (requestCode == SHIZUKU_REQUEST_CODE) {
                 recreate()
@@ -129,7 +124,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Shizuku.addRequestPermissionResultListener(shizukuListener)
+        Shizuku.addRequestPermissionResultListener(
+            shizukuPermissionListener
+        )
 
         enableEdgeToEdge()
         window.isNavigationBarContrastEnforced = false
@@ -138,6 +135,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             M3KHelperTheme {
+
                 InitDimens()
 
                 if (hasPrivilegedAccess()) {
@@ -155,7 +153,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        Shizuku.removeRequestPermissionResultListener(shizukuListener)
+        Shizuku.removeRequestPermissionResultListener(
+            shizukuPermissionListener
+        )
         super.onDestroy()
     }
 
@@ -177,14 +177,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun hasPrivilegedAccess(): Boolean {
-        val root = try {
+    private fun hasRoot(): Boolean {
+        return try {
             Shell.isAppGrantedRoot() == true
         } catch (_: Throwable) {
             false
         }
+    }
 
-        return root || hasShizukuPermission()
+    private fun hasPrivilegedAccess(): Boolean {
+        return hasRoot() || hasShizukuPermission()
     }
 
     private fun requestShizukuPermission() {
@@ -193,26 +195,31 @@ class MainActivity : ComponentActivity() {
                 return
             }
 
-            if (Shizuku.checkSelfPermission() ==
+            if (
+                Shizuku.checkSelfPermission() ==
                 PackageManager.PERMISSION_GRANTED
             ) {
                 recreate()
                 return
             }
 
-            Shizuku.requestPermission(SHIZUKU_REQUEST_CODE)
+            Shizuku.requestPermission(
+                SHIZUKU_REQUEST_CODE
+            )
 
         } catch (_: Throwable) {
         }
     }
 
     private fun resolveOrientation(): Int {
-        val forceRotation = prefs.getBoolean(
-            "force_rotation",
-            false
-        )
+        val forceRotation =
+            prefs.getBoolean(
+                "force_rotation",
+                false
+            )
 
-        val isNabu = Build.DEVICE == "nabu"
+        val isNabu =
+            Build.DEVICE == "nabu"
 
         val isDebugEmulator =
             BuildConfig.DEBUG &&
@@ -227,5 +234,505 @@ class MainActivity : ComponentActivity() {
         } else {
             SCREEN_ORIENTATION_USER_PORTRAIT
         }
+    }
+}
+
+
+@Composable
+internal fun InitDimens() {
+    LineHeight = 20.ssp()
+    FontSize = 15.ssp()
+    PaddingValue = 10.sdp()
+}
+
+
+@Composable
+private fun ShizukuPermissionScreen(
+    shizukuRunning: Boolean,
+    onRequestPermission: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            Icon(
+                imageVector = Icons.Default.Security,
+                contentDescription = "Shizuku",
+                modifier = Modifier.size(64.dp)
+            )
+
+            Text(
+                text = "M3K Helper"
+            )
+
+            Text(
+                text = if (shizukuRunning) {
+                    "Shizuku está executando"
+                } else {
+                    "Shizuku não está executando"
+                }
+            )
+
+            if (shizukuRunning) {
+
+                Button(
+                    onClick = onRequestPermission
+                ) {
+                    Text(
+                        text = "Conceder permissão Shizuku"
+                    )
+                }
+
+            } else {
+
+                Text(
+                    text = "Inicie o Shizuku e tente novamente."
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+internal fun M3KRootContent() {
+
+    val navController =
+        rememberNavController()
+
+    val navigator =
+        navController.rememberDestinationsNavigator()
+
+    val orientation =
+        LocalConfiguration.current.orientation
+
+    var latestVersion by remember {
+        mutableStateOf(
+            LatestVersionInfo()
+        )
+    }
+
+    LaunchedEffect(Unit) {
+
+        if (
+            prefs.getBoolean(
+                "check_update",
+                true
+            )
+        ) {
+            latestVersion =
+                checkNewVersion()
+        }
+    }
+
+    val hasNewVersion =
+        latestVersion.versionCode >
+            BuildConfig.VERSION_CODE
+
+    val bottomBarRoutes =
+        remember {
+            Destinations.entries
+                .map { it.route.route }
+                .toSet()
+        }
+
+    Scaffold(
+
+        bottomBar = {
+
+            AnimatedVisibility(
+                visible =
+                    orientation !=
+                        Configuration.ORIENTATION_LANDSCAPE,
+
+                enter =
+                    slideInVertically { it },
+
+                exit =
+                    slideOutVertically { it }
+            ) {
+
+                BottomNavigationBar(
+                    navController,
+                    navigator
+                )
+            }
+        }
+
+    ) { innerPadding ->
+
+        Row {
+
+            AnimatedVisibility(
+
+                visible =
+                    orientation ==
+                        Configuration.ORIENTATION_LANDSCAPE,
+
+                enter =
+                    slideInHorizontally { -it },
+
+                exit =
+                    slideOutHorizontally { -it }
+            ) {
+
+                LeftNavigationBar(
+                    navController,
+                    navigator
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .padding(
+                        bottom =
+                            innerPadding
+                                .calculateBottomPadding()
+                    )
+                    .fillMaxSize()
+            ) {
+
+                DestinationsNavHost(
+
+                    navGraph =
+                        NavGraphs.root,
+
+                    navController =
+                        navController,
+
+                    defaultTransitions =
+                        object :
+                            NavHostAnimatedDestinationStyle() {
+
+                            override val enterTransition:
+                                AnimatedContentTransitionScope
+                                <NavBackStackEntry>.() ->
+                                EnterTransition = {
+
+                                if (
+                                    targetState
+                                        .destination
+                                        .route
+                                        !in bottomBarRoutes
+                                ) {
+                                    slideFromRightEnterTransition
+                                } else {
+                                    fadeEnterTransition
+                                }
+                            }
+
+                            override val exitTransition:
+                                AnimatedContentTransitionScope
+                                <NavBackStackEntry>.() ->
+                                ExitTransition = {
+
+                                if (
+                                    targetState
+                                        .destination
+                                        .route
+                                        !in bottomBarRoutes
+                                ) {
+
+                                    if (
+                                        targetState
+                                            .destination
+                                            .route ==
+                                            SettingsScreenDestination
+                                                .route ||
+
+                                        targetState
+                                            .destination
+                                            .route ==
+                                            ThemeEngineScreenDestination
+                                                .route
+                                    ) {
+
+                                        slideToLeftExitTransition
+
+                                    } else {
+
+                                        slideToRightExitTransition
+                                    }
+
+                                } else {
+
+                                    fadeExitTransition
+                                }
+                            }
+                        }
+                )
+
+                val isWarningVisible by
+                    showWarningCard
+                        .collectAsStateWithLifecycle()
+
+                if (isWarningVisible) {
+                    UnknownDevice()
+                }
+            }
+
+            AnimatedVisibility(
+
+                visible =
+                    hasNewVersion,
+
+                enter =
+                    expandTransition,
+
+                exit =
+                    collapseTransition
+            ) {
+
+                UpdateDialog(
+                    latestVersion
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun getVisibleDestinations():
+    List<Destinations> {
+
+    val currentDeviceCard by
+        device.currentDeviceCard
+            .collectAsStateWithLifecycle()
+
+    return remember(currentDeviceCard) {
+
+        Destinations.entries.filter { destination ->
+
+            !(
+                currentDeviceCard.noLinks &&
+                    destination.route ==
+                    LinksScreenDestination
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun BottomNavigationBar(
+    navController: NavHostController,
+    navigator: DestinationsNavigator
+) {
+
+    NavigationBar(
+
+        tonalElevation = 12.dp,
+
+        windowInsets =
+            WindowInsets.systemBars
+                .union(
+                    WindowInsets.displayCutout
+                )
+                .only(
+                    WindowInsetsSides.Horizontal +
+                        WindowInsetsSides.Bottom
+                ),
+
+        modifier =
+            Modifier.height(120.sdp())
+
+    ) {
+
+        getVisibleDestinations()
+            .filterNot {
+                it.landscapeOnly
+            }
+            .forEach { destination ->
+
+                val isCurrentDestOnBackStack by
+                    navController
+                        .isRouteOnBackStackAsState(
+                            destination.route
+                        )
+
+                NavigationBarItem(
+
+                    selected =
+                        isCurrentDestOnBackStack,
+
+                    onClick = {
+
+                        navigateTo(
+                            destination,
+                            isCurrentDestOnBackStack,
+                            navigator
+                        )
+                    },
+
+                    icon = {
+
+                        NavigationIcon(
+                            destination,
+                            isCurrentDestOnBackStack
+                        )
+                    },
+
+                    label = {
+
+                        Text(
+                            text =
+                                stringResource(
+                                    destination.label
+                                ),
+
+                            fontSize =
+                                10.ssp()
+                        )
+                    },
+
+                    alwaysShowLabel = false
+                )
+            }
+    }
+}
+
+
+@Composable
+private fun LeftNavigationBar(
+    navController: NavHostController,
+    navigator: DestinationsNavigator
+) {
+
+    NavigationRail(
+
+        modifier =
+            Modifier.width(110.sdp()),
+
+        windowInsets =
+            WindowInsets.systemBars
+                .only(
+                    WindowInsetsSides.Bottom +
+                        WindowInsetsSides.Top
+                )
+    ) {
+
+        getVisibleDestinations()
+            .forEach { destination ->
+
+                if (
+                    destination.route ==
+                    SettingsScreenDestination
+                ) {
+
+                    Spacer(
+                        Modifier.weight(1f)
+                    )
+                }
+
+                val isCurrentDestOnBackStack by
+                    navController
+                        .isRouteOnBackStackAsState(
+                            destination.route
+                        )
+
+                NavigationRailItem(
+
+                    selected =
+                        isCurrentDestOnBackStack,
+
+                    onClick = {
+
+                        navigateTo(
+                            destination,
+                            isCurrentDestOnBackStack,
+                            navigator
+                        )
+                    },
+
+                    icon = {
+
+                        NavigationIcon(
+                            destination,
+                            isCurrentDestOnBackStack
+                        )
+                    },
+
+                    label = {
+
+                        Text(
+                            text =
+                                stringResource(
+                                    destination.label
+                                ),
+
+                            fontSize =
+                                10.ssp()
+                        )
+                    },
+
+                    alwaysShowLabel = false
+                )
+            }
+    }
+}
+
+
+@Composable
+private fun NavigationIcon(
+    destination: Destinations,
+    selected: Boolean
+) {
+
+    val icon =
+        if (selected) {
+            destination.iconSelected
+        } else {
+            destination.iconNotSelected
+        }
+
+    Icon(
+
+        imageVector = icon,
+
+        contentDescription =
+            stringResource(
+                destination.label
+            ),
+
+        modifier =
+            Modifier.size(20.sdp())
+    )
+}
+
+
+private fun navigateTo(
+    destination: Destinations,
+    isSelected: Boolean,
+    navigator: DestinationsNavigator
+) {
+
+    if (isSelected) {
+
+        navigator.popBackStack(
+            destination.route,
+            false
+        )
+    }
+
+    navigator.navigate(
+        destination.route
+    ) {
+
+        popUpTo(
+            NavGraphs.root
+        ) {
+            saveState = true
+        }
+
+        launchSingleTop = true
+        restoreState = true
     }
 }
