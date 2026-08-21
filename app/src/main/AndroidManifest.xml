@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission
+        android:name="android.permission.INTERNET" />
+
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".M3KHelperApplication"
@@ -19,6 +26,14 @@
         android:theme="@style/Theme.M3KHelper"
         tools:replace="android:supportsRtl"
         tools:targetApi="tiramisu">
+
+        <!-- Shizuku -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <activity
             android:name=".ui.MainActivity"
@@ -44,7 +59,8 @@
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
 
             <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
+                <action
+                    android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
 
         </service>
@@ -57,7 +73,8 @@
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
 
             <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
+                <action
+                    android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
 
         </service>
