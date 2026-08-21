@@ -1,11 +1,14 @@
+
 package com.remtrik.m3khelper.ui
 
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER
 import android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -63,12 +66,10 @@ import androidx.navigation.compose.rememberNavController
 
 import com.ramcosta.composedestinations.DestinationsNavHost
 import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
-
 import com.ramcosta.composedestinations.generated.NavGraphs
 import com.ramcosta.composedestinations.generated.destinations.LinksScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.SettingsScreenDestination
 import com.ramcosta.composedestinations.generated.destinations.ThemeEngineScreenDestination
-
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.utils.isRouteOnBackStackAsState
 import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
@@ -105,47 +106,70 @@ import com.topjohnwu.superuser.Shell
 import rikka.shizuku.Shizuku
 
 
-/**
- * Verifica se o serviço Shizuku está disponível.
- *
- * true  = Shizuku está conectado
- * false = Shizuku não está disponível
- */
-private fun isShizukuAvailable(): Boolean {
-    return try {
-        Shizuku.pingBinder()
-    } catch (_: Exception) {
-        false
-    }
-}
-
-
-/**
- * Verifica se o aplicativo possui permissão do Shizuku.
- *
- * Esta função não solicita a permissão.
- * Apenas verifica o estado atual.
- */
-private fun hasShizukuPermission(): Boolean {
-    return try {
-        Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED
-    } catch (_: Exception) {
-        false
-    }
-}
-
-
 class MainActivity : ComponentActivity() {
+
+    companion object {
+
+        private const val SHIZUKU_PERMISSION_REQUEST_CODE = 1001
+    }
+
+
+    /**
+     * Listener chamado quando o usuário responde
+     * à solicitação de permissão do Shizuku.
+     */
+    private val shizukuPermissionListener =
+        Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+
+            if (requestCode != SHIZUKU_PERMISSION_REQUEST_CODE) {
+                return@OnRequestPermissionResultListener
+            }
+
+            if (grantResult == PackageManager.PERMISSION_GRANTED) {
+
+                Toast.makeText(
+                    this,
+                    "Permissão Shizuku concedida",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+            } else {
+
+                Toast.makeText(
+                    this,
+                    "Permissão Shizuku recusada",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
 
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        /*
+         * Registra o listener antes de solicitar a permissão.
+         */
+        Shizuku.addRequestPermissionResultListener(
+            shizukuPermissionListener
+        )
 
         enableEdgeToEdge()
 
         window.isNavigationBarContrastEnforced = false
 
         requestedOrientation = resolveOrientation()
+
+        /*
+         * Solicita a permissão Shizuku.
+         *
+         * O pedido somente acontece se:
+         * 1. O Shizuku estiver disponível.
+         * 2. O aplicativo ainda não tiver a permissão.
+         */
+        requestShizukuPermission()
+
 
         setContent {
 
@@ -154,10 +178,10 @@ class MainActivity : ComponentActivity() {
                 InitDimens()
 
                 /*
-                 * Mantém o comportamento Root original.
+                 * Mantém o Root original do M3K Helper.
                  *
-                 * Shizuku foi adicionado separadamente e
-                 * não substitui o Root nesta versão.
+                 * Shizuku foi adicionado como uma segunda
+                 * possibilidade de acesso privilegiado.
                  */
                 if (Shell.isAppGrantedRoot() == true) {
 
@@ -173,12 +197,140 @@ class MainActivity : ComponentActivity() {
 
 
     /**
+     * Solicita a permissão do Shizuku.
+     */
+    private fun requestShizukuPermission() {
+
+        try {
+
+            /*
+             * Verifica se o serviço Shizuku está disponível.
+             */
+            if (!Shizuku.pingBinder()) {
+
+                Toast.makeText(
+                    this,
+                    "Shizuku não está iniciado",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return
+            }
+
+
+            /*
+             * Verifica se já temos a permissão.
+             */
+            if (
+                Shizuku.checkSelfPermission() ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+
+                return
+            }
+
+
+            /*
+             * Se o Android/Shizuku indicar que deve ser
+             * apresentada uma justificativa, não fazemos
+             * o pedido automaticamente novamente.
+             */
+            if (Shizuku.shouldShowRequestPermissionRationale()) {
+
+                Toast.makeText(
+                    this,
+                    "Permissão Shizuku necessária",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return
+            }
+
+
+            /*
+             * Solicita a permissão.
+             */
+            Shizuku.requestPermission(
+                SHIZUKU_PERMISSION_REQUEST_CODE
+            )
+
+        } catch (e: Exception) {
+
+            e.printStackTrace()
+
+            Toast.makeText(
+                this,
+                "Erro ao acessar o Shizuku",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+
+    /**
+     * Verifica se o Shizuku está disponível.
+     */
+    private fun isShizukuAvailable(): Boolean {
+
+        return try {
+
+            Shizuku.pingBinder()
+
+        } catch (_: Exception) {
+
+            false
+        }
+    }
+
+
+    /**
+     * Verifica se o aplicativo possui permissão Shizuku.
+     */
+    private fun hasShizukuPermission(): Boolean {
+
+        return try {
+
+            Shizuku.checkSelfPermission() ==
+                    PackageManager.PERMISSION_GRANTED
+
+        } catch (_: Exception) {
+
+            false
+        }
+    }
+
+
+    /**
+     * Retorna true quando Shizuku está disponível
+     * e autorizado.
+     */
+    private fun isShizukuReady(): Boolean {
+
+        return isShizukuAvailable() &&
+                hasShizukuPermission()
+    }
+
+
+    override fun onDestroy() {
+
+        Shizuku.removeRequestPermissionResultListener(
+            shizukuPermissionListener
+        )
+
+        super.onDestroy()
+    }
+
+
+    /**
      * Resolve a orientação da aplicação.
      */
     private fun resolveOrientation(): Int {
 
         val forceRotation =
-            prefs.getBoolean("force_rotation", false)
+            prefs.getBoolean(
+                "force_rotation",
+                false
+            )
 
         val isNabu =
             Build.DEVICE == "nabu"
@@ -186,6 +338,7 @@ class MainActivity : ComponentActivity() {
         val isDebugEmulator =
             BuildConfig.DEBUG &&
                     Build.DEVICE == "emu64xa"
+
 
         return if (
             isNabu ||
@@ -204,7 +357,7 @@ class MainActivity : ComponentActivity() {
 
 
 /**
- * Inicialização das dimensões globais.
+ * Inicializa dimensões globais.
  */
 @Composable
 internal fun InitDimens() {
@@ -218,7 +371,7 @@ internal fun InitDimens() {
 
 
 /**
- * Conteúdo principal do M3K Helper.
+ * Conteúdo principal.
  */
 @Composable
 internal fun M3KRootContent() {
@@ -293,8 +446,8 @@ internal fun M3KRootContent() {
             ) {
 
                 BottomNavigationBar(
-                    navController = navController,
-                    navigator = navigator
+                    navController,
+                    navigator
                 )
             }
         }
@@ -321,21 +474,22 @@ internal fun M3KRootContent() {
             ) {
 
                 LeftNavigationBar(
-                    navController = navController,
-                    navigator = navigator
+                    navController,
+                    navigator
                 )
             }
 
 
             Box(
 
-                modifier = Modifier
-                    .padding(
-                        bottom =
-                            innerPadding
-                                .calculateBottomPadding()
-                    )
-                    .fillMaxSize()
+                modifier =
+                    Modifier
+                        .padding(
+                            bottom =
+                                innerPadding
+                                    .calculateBottomPadding()
+                        )
+                        .fillMaxSize()
 
             ) {
 
@@ -434,6 +588,7 @@ internal fun M3KRootContent() {
 
                 exit =
                     collapseTransition
+
             ) {
 
                 UpdateDialog(
@@ -446,7 +601,7 @@ internal fun M3KRootContent() {
 
 
 /**
- * Retorna as telas disponíveis para o dispositivo atual.
+ * Obtém os destinos disponíveis.
  */
 @Composable
 private fun getVisibleDestinations():
@@ -472,7 +627,7 @@ private fun getVisibleDestinations():
 
 
 /**
- * Barra de navegação inferior.
+ * Navegação inferior.
  */
 @Composable
 private fun BottomNavigationBar(
@@ -507,11 +662,9 @@ private fun BottomNavigationBar(
     ) {
 
         getVisibleDestinations()
-
             .filterNot {
                 it.landscapeOnly
             }
-
             .forEach { destination ->
 
                 val isCurrentDestOnBackStack by
@@ -565,7 +718,7 @@ private fun BottomNavigationBar(
 
 
 /**
- * Barra lateral para modo paisagem.
+ * Navegação lateral em modo paisagem.
  */
 @Composable
 private fun LeftNavigationBar(
@@ -591,6 +744,7 @@ private fun LeftNavigationBar(
                     WindowInsetsSides.Bottom +
                             WindowInsetsSides.Top
                 )
+
     ) {
 
         getVisibleDestinations()
@@ -703,7 +857,7 @@ private fun NavigationIcon(
 
 
 /**
- * Navegação entre destinos.
+ * Navegação para um destino.
  */
 private fun navigateTo(
 
