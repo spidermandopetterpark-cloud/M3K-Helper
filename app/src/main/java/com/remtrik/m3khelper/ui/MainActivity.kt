@@ -1,111 +1,33 @@
 package com.remtrik.m3khelper.ui
 
-import android.annotation.SuppressLint
-import android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER
-import android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT
-import android.content.pm.PackageManager
-import android.content.res.Configuration
-import android.os.Build
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
-
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.width
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Security
-
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
-
-import com.ramcosta.composedestinations.DestinationsNavHost
-import com.ramcosta.composedestinations.animations.NavHostAnimatedDestinationStyle
-import com.ramcosta.composedestinations.generated.NavGraphs
-import com.ramcosta.composedestinations.generated.destinations.LinksScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.SettingsScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.ThemeEngineScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.utils.isRouteOnBackStackAsState
-import com.ramcosta.composedestinations.utils.rememberDestinationsNavigator
-
-import com.remtrik.m3khelper.BuildConfig
-import com.remtrik.m3khelper.prefs
-
-import com.remtrik.m3khelper.ui.component.NoRoot
-import com.remtrik.m3khelper.ui.component.UnknownDevice
-import com.remtrik.m3khelper.ui.component.UpdateDialog
-import com.remtrik.m3khelper.ui.theme.M3KHelperTheme
-
-import com.remtrik.m3khelper.util.collapseTransition
-import com.remtrik.m3khelper.util.expandTransition
-import com.remtrik.m3khelper.util.fadeEnterTransition
-import com.remtrik.m3khelper.util.fadeExitTransition
-import com.remtrik.m3khelper.util.funcs.Download.checkNewVersion
-import com.remtrik.m3khelper.util.funcs.LatestVersionInfo
-import com.remtrik.m3khelper.util.slideFromRightEnterTransition
-import com.remtrik.m3khelper.util.slideToLeftExitTransition
-import com.remtrik.m3khelper.util.slideToRightExitTransition
-import com.remtrik.m3khelper.util.variables.FontSize
-import com.remtrik.m3khelper.util.variables.LineHeight
-import com.remtrik.m3khelper.util.variables.PaddingValue
-import com.remtrik.m3khelper.util.variables.device
-import com.remtrik.m3khelper.util.variables.sdp
-import com.remtrik.m3khelper.util.variables.showWarningCard
-import com.remtrik.m3khelper.util.variables.ssp
-
-import com.topjohnwu.superuser.Shell
-
 import rikka.shizuku.Shizuku
-
 
 class MainActivity : ComponentActivity() {
 
@@ -113,57 +35,102 @@ class MainActivity : ComponentActivity() {
         private const val SHIZUKU_REQUEST_CODE = 1001
     }
 
-    private val shizukuPermissionListener =
-        Shizuku.OnRequestPermissionResultListener { requestCode, _ ->
-            if (requestCode == SHIZUKU_REQUEST_CODE) {
-                recreate()
-            }
-        }
-
-    @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Shizuku.addRequestPermissionResultListener(
-            shizukuPermissionListener
-        )
-
-        enableEdgeToEdge()
-        window.isNavigationBarContrastEnforced = false
-
-        requestedOrientation = resolveOrientation()
-
         setContent {
-            M3KHelperTheme {
-
-                InitDimens()
-
-                if (hasPrivilegedAccess()) {
-                    M3KRootContent()
-                } else {
-                    ShizukuPermissionScreen(
-                        shizukuRunning = isShizukuRunning(),
-                        onRequestPermission = {
-                            requestShizukuPermission()
-                        }
-                    )
-                }
+            MaterialTheme {
+                M3KHelperScreen(
+                    onRequestShizuku = {
+                        requestShizukuPermission()
+                    },
+                    onStartWindows = {
+                        startWindows11()
+                    },
+                    onReboot = {
+                        rebootAndroid()
+                    }
+                )
             }
         }
     }
 
-    override fun onDestroy() {
-        Shizuku.removeRequestPermissionResultListener(
-            shizukuPermissionListener
-        )
-        super.onDestroy()
+    private fun requestShizukuPermission() {
+        try {
+            if (!Shizuku.pingBinder()) {
+                Toast.makeText(
+                    this,
+                    "Shizuku não está executando.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
+
+            if (Shizuku.checkSelfPermission() ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                Toast.makeText(
+                    this,
+                    "Shizuku já está autorizado.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return
+            }
+
+            Shizuku.requestPermission(SHIZUKU_REQUEST_CODE)
+
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "Erro no Shizuku: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
-    private fun isShizukuRunning(): Boolean {
-        return try {
-            Shizuku.pingBinder()
-        } catch (_: Throwable) {
-            false
+    private fun startWindows11() {
+        Toast.makeText(
+            this,
+            "Windows 11: iniciar máquina virtual",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        /*
+         * Coloque aqui o comando real do seu backend/QEMU.
+         *
+         * Exemplo:
+         * startService(Intent(this, WindowsService::class.java))
+         *
+         * Não é possível transformar o Android fisicamente
+         * em Snapdragon 8 Elite Gen 5 ou criar RAM física.
+         */
+    }
+
+    private fun rebootAndroid() {
+        if (!hasShizukuPermission()) {
+            Toast.makeText(
+                this,
+                "Autorize o Shizuku primeiro.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        try {
+            val process = Shizuku.newProcess(
+                arrayOf("reboot"),
+                null,
+                null
+            )
+
+            process.start()
+
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                "Falha ao reiniciar: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -171,568 +138,194 @@ class MainActivity : ComponentActivity() {
         return try {
             Shizuku.pingBinder() &&
                 Shizuku.checkSelfPermission() ==
-                PackageManager.PERMISSION_GRANTED
-        } catch (_: Throwable) {
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        } catch (_: Exception) {
             false
-        }
-    }
-
-    private fun hasRoot(): Boolean {
-        return try {
-            Shell.isAppGrantedRoot() == true
-        } catch (_: Throwable) {
-            false
-        }
-    }
-
-    private fun hasPrivilegedAccess(): Boolean {
-        return hasRoot() || hasShizukuPermission()
-    }
-
-    private fun requestShizukuPermission() {
-        try {
-            if (!Shizuku.pingBinder()) {
-                return
-            }
-
-            if (
-                Shizuku.checkSelfPermission() ==
-                PackageManager.PERMISSION_GRANTED
-            ) {
-                recreate()
-                return
-            }
-
-            Shizuku.requestPermission(
-                SHIZUKU_REQUEST_CODE
-            )
-
-        } catch (_: Throwable) {
-        }
-    }
-
-    private fun resolveOrientation(): Int {
-        val forceRotation =
-            prefs.getBoolean(
-                "force_rotation",
-                false
-            )
-
-        val isNabu =
-            Build.DEVICE == "nabu"
-
-        val isDebugEmulator =
-            BuildConfig.DEBUG &&
-                Build.DEVICE == "emu64xa"
-
-        return if (
-            isNabu ||
-            isDebugEmulator ||
-            forceRotation
-        ) {
-            SCREEN_ORIENTATION_FULL_USER
-        } else {
-            SCREEN_ORIENTATION_USER_PORTRAIT
         }
     }
 }
 
-
-@Composable
-internal fun InitDimens() {
-    LineHeight = 20.ssp()
-    FontSize = 15.ssp()
-    PaddingValue = 10.sdp()
-}
-
-
-@Composable
-private fun ShizukuPermissionScreen(
-    shizukuRunning: Boolean,
-    onRequestPermission: () -> Unit
+@androidx.compose.runtime.Composable
+private fun M3KHelperScreen(
+    onRequestShizuku: () -> Unit,
+    onStartWindows: () -> Unit,
+    onReboot: () -> Unit
 ) {
-    Box(
+    var ram by remember { mutableStateOf("4 GB") }
+    var cpu by remember { mutableStateOf("4 vCPU") }
+
+    var ramMenu by remember { mutableStateOf(false) }
+    var cpuMenu by remember { mutableStateOf(false) }
+
+    val ramOptions = listOf(
+        "2 GB",
+        "4 GB",
+        "6 GB",
+        "8 GB",
+        "12 GB",
+        "16 GB",
+        "20 GB",
+        "24 GB",
+        "26 GB"
+    )
+
+    val cpuOptions = listOf(
+        "1 vCPU",
+        "2 vCPU",
+        "4 vCPU",
+        "6 vCPU",
+        "8 vCPU",
+        "12 vCPU"
+    )
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+
+        Text(
+            text = "M3K Helper",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Text(
+            text = "Windows 11 / Shizuku",
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
         ) {
-
-            Icon(
-                imageVector = Icons.Default.Security,
-                contentDescription = "Shizuku",
-                modifier = Modifier.size(64.dp)
-            )
-
-            Text(
-                text = "M3K Helper"
-            )
-
-            Text(
-                text = if (shizukuRunning) {
-                    "Shizuku está executando"
-                } else {
-                    "Shizuku não está executando"
-                }
-            )
-
-            if (shizukuRunning) {
-
-                Button(
-                    onClick = onRequestPermission
-                ) {
-                    Text(
-                        text = "Conceder permissão Shizuku"
-                    )
-                }
-
-            } else {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
 
                 Text(
-                    text = "Inicie o Shizuku e tente novamente."
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-internal fun M3KRootContent() {
-
-    val navController =
-        rememberNavController()
-
-    val navigator =
-        navController.rememberDestinationsNavigator()
-
-    val orientation =
-        LocalConfiguration.current.orientation
-
-    var latestVersion by remember {
-        mutableStateOf(
-            LatestVersionInfo()
-        )
-    }
-
-    LaunchedEffect(Unit) {
-
-        if (
-            prefs.getBoolean(
-                "check_update",
-                true
-            )
-        ) {
-            latestVersion =
-                checkNewVersion()
-        }
-    }
-
-    val hasNewVersion =
-        latestVersion.versionCode >
-            BuildConfig.VERSION_CODE
-
-    val bottomBarRoutes =
-        remember {
-            Destinations.entries
-                .map { it.route.route }
-                .toSet()
-        }
-
-    Scaffold(
-
-        bottomBar = {
-
-            AnimatedVisibility(
-                visible =
-                    orientation !=
-                        Configuration.ORIENTATION_LANDSCAPE,
-
-                enter =
-                    slideInVertically { it },
-
-                exit =
-                    slideOutVertically { it }
-            ) {
-
-                BottomNavigationBar(
-                    navController,
-                    navigator
-                )
-            }
-        }
-
-    ) { innerPadding ->
-
-        Row {
-
-            AnimatedVisibility(
-
-                visible =
-                    orientation ==
-                        Configuration.ORIENTATION_LANDSCAPE,
-
-                enter =
-                    slideInHorizontally { -it },
-
-                exit =
-                    slideOutHorizontally { -it }
-            ) {
-
-                LeftNavigationBar(
-                    navController,
-                    navigator
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .padding(
-                        bottom =
-                            innerPadding
-                                .calculateBottomPadding()
-                    )
-                    .fillMaxSize()
-            ) {
-
-                DestinationsNavHost(
-
-                    navGraph =
-                        NavGraphs.root,
-
-                    navController =
-                        navController,
-
-                    defaultTransitions =
-                        object :
-                            NavHostAnimatedDestinationStyle() {
-
-                            override val enterTransition:
-                                AnimatedContentTransitionScope
-                                <NavBackStackEntry>.() ->
-                                EnterTransition = {
-
-                                if (
-                                    targetState
-                                        .destination
-                                        .route
-                                        !in bottomBarRoutes
-                                ) {
-                                    slideFromRightEnterTransition
-                                } else {
-                                    fadeEnterTransition
-                                }
-                            }
-
-                            override val exitTransition:
-                                AnimatedContentTransitionScope
-                                <NavBackStackEntry>.() ->
-                                ExitTransition = {
-
-                                if (
-                                    targetState
-                                        .destination
-                                        .route
-                                        !in bottomBarRoutes
-                                ) {
-
-                                    if (
-                                        targetState
-                                            .destination
-                                            .route ==
-                                            SettingsScreenDestination
-                                                .route ||
-
-                                        targetState
-                                            .destination
-                                            .route ==
-                                            ThemeEngineScreenDestination
-                                                .route
-                                    ) {
-
-                                        slideToLeftExitTransition
-
-                                    } else {
-
-                                        slideToRightExitTransition
-                                    }
-
-                                } else {
-
-                                    fadeExitTransition
-                                }
-                            }
-                        }
+                    text = "Memória RAM da VM",
+                    style = MaterialTheme.typography.titleMedium
                 )
 
-                val isWarningVisible by
-                    showWarningCard
-                        .collectAsStateWithLifecycle()
-
-                if (isWarningVisible) {
-                    UnknownDevice()
-                }
-            }
-
-            AnimatedVisibility(
-
-                visible =
-                    hasNewVersion,
-
-                enter =
-                    expandTransition,
-
-                exit =
-                    collapseTransition
-            ) {
-
-                UpdateDialog(
-                    latestVersion
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun getVisibleDestinations():
-    List<Destinations> {
-
-    val currentDeviceCard by
-        device.currentDeviceCard
-            .collectAsStateWithLifecycle()
-
-    return remember(currentDeviceCard) {
-
-        Destinations.entries.filter { destination ->
-
-            !(
-                currentDeviceCard.noLinks &&
-                    destination.route ==
-                    LinksScreenDestination
-            )
-        }
-    }
-}
-
-
-@Composable
-private fun BottomNavigationBar(
-    navController: NavHostController,
-    navigator: DestinationsNavigator
-) {
-
-    NavigationBar(
-
-        tonalElevation = 12.dp,
-
-        windowInsets =
-            WindowInsets.systemBars
-                .union(
-                    WindowInsets.displayCutout
-                )
-                .only(
-                    WindowInsetsSides.Horizontal +
-                        WindowInsetsSides.Bottom
-                ),
-
-        modifier =
-            Modifier.height(120.sdp())
-
-    ) {
-
-        getVisibleDestinations()
-            .filterNot {
-                it.landscapeOnly
-            }
-            .forEach { destination ->
-
-                val isCurrentDestOnBackStack by
-                    navController
-                        .isRouteOnBackStackAsState(
-                            destination.route
-                        )
-
-                NavigationBarItem(
-
-                    selected =
-                        isCurrentDestOnBackStack,
-
-                    onClick = {
-
-                        navigateTo(
-                            destination,
-                            isCurrentDestOnBackStack,
-                            navigator
-                        )
-                    },
-
-                    icon = {
-
-                        NavigationIcon(
-                            destination,
-                            isCurrentDestOnBackStack
-                        )
-                    },
-
-                    label = {
-
-                        Text(
-                            text =
-                                stringResource(
-                                    destination.label
-                                ),
-
-                            fontSize =
-                                10.ssp()
-                        )
-                    },
-
-                    alwaysShowLabel = false
-                )
-            }
-    }
-}
-
-
-@Composable
-private fun LeftNavigationBar(
-    navController: NavHostController,
-    navigator: DestinationsNavigator
-) {
-
-    NavigationRail(
-
-        modifier =
-            Modifier.width(110.sdp()),
-
-        windowInsets =
-            WindowInsets.systemBars
-                .only(
-                    WindowInsetsSides.Bottom +
-                        WindowInsetsSides.Top
-                )
-    ) {
-
-        getVisibleDestinations()
-            .forEach { destination ->
-
-                if (
-                    destination.route ==
-                    SettingsScreenDestination
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
 
-                    Spacer(
-                        Modifier.weight(1f)
+                    Text(
+                        text = ram,
+                        modifier = Modifier.padding(12.dp)
                     )
+
+                    OutlinedButton(
+                        onClick = {
+                            ramMenu = true
+                        }
+                    ) {
+                        Text("Selecionar")
+                    }
+
+                    DropdownMenu(
+                        expanded = ramMenu,
+                        onDismissRequest = {
+                            ramMenu = false
+                        }
+                    ) {
+                        ramOptions.forEach { option ->
+
+                            DropdownMenuItem(
+                                text = {
+                                    Text(option)
+                                },
+                                onClick = {
+                                    ram = option
+                                    ramMenu = false
+                                }
+                            )
+                        }
+                    }
                 }
-
-                val isCurrentDestOnBackStack by
-                    navController
-                        .isRouteOnBackStackAsState(
-                            destination.route
-                        )
-
-                NavigationRailItem(
-
-                    selected =
-                        isCurrentDestOnBackStack,
-
-                    onClick = {
-
-                        navigateTo(
-                            destination,
-                            isCurrentDestOnBackStack,
-                            navigator
-                        )
-                    },
-
-                    icon = {
-
-                        NavigationIcon(
-                            destination,
-                            isCurrentDestOnBackStack
-                        )
-                    },
-
-                    label = {
-
-                        Text(
-                            text =
-                                stringResource(
-                                    destination.label
-                                ),
-
-                            fontSize =
-                                10.ssp()
-                        )
-                    },
-
-                    alwaysShowLabel = false
-                )
             }
-    }
-}
-
-
-@Composable
-private fun NavigationIcon(
-    destination: Destinations,
-    selected: Boolean
-) {
-
-    val icon =
-        if (selected) {
-            destination.iconSelected
-        } else {
-            destination.iconNotSelected
         }
 
-    Icon(
-
-        imageVector = icon,
-
-        contentDescription =
-            stringResource(
-                destination.label
-            ),
-
-        modifier =
-            Modifier.size(20.sdp())
-    )
-}
-
-
-private fun navigateTo(
-    destination: Destinations,
-    isSelected: Boolean,
-    navigator: DestinationsNavigator
-) {
-
-    if (isSelected) {
-
-        navigator.popBackStack(
-            destination.route,
-            false
-        )
-    }
-
-    navigator.navigate(
-        destination.route
-    ) {
-
-        popUpTo(
-            NavGraphs.root
+        Card(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            saveState = true
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+
+                Text(
+                    text = "Processador da VM",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+
+                    Text(
+                        text = cpu,
+                        modifier = Modifier.padding(12.dp)
+                    )
+
+                    OutlinedButton(
+                        onClick = {
+                            cpuMenu = true
+                        }
+                    ) {
+                        Text("Selecionar")
+                    }
+
+                    DropdownMenu(
+                        expanded = cpuMenu,
+                        onDismissRequest = {
+                            cpuMenu = false
+                        }
+                    ) {
+                        cpuOptions.forEach { option ->
+
+                            DropdownMenuItem(
+                                text = {
+                                    Text(option)
+                                },
+                                onClick = {
+                                    cpu = option
+                                    cpuMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        launchSingleTop = true
-        restoreState = true
+        Spacer(
+            modifier = Modifier.height(4.dp)
+        )
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onRequestShizuku
+        ) {
+            Text("Autorizar Shizuku")
+        }
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onStartWindows
+        ) {
+            Text("Iniciar Windows 11")
+        }
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = onReboot
+        ) {
+            Text("Reiniciar Android")
+        }
     }
 }
