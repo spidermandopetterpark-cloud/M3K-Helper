@@ -27,14 +27,6 @@
         tools:replace="android:supportsRtl"
         tools:targetApi="tiramisu">
 
-        <!-- Shizuku -->
-        <provider
-            android:name="rikka.shizuku.ShizukuProvider"
-            android:authorities="${applicationId}.shizuku"
-            android:exported="true"
-            android:multiprocess="false"
-            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
-
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
@@ -42,7 +34,9 @@
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+
+                <category
+                    android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
             <meta-data
